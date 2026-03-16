@@ -1,43 +1,67 @@
-# Astro Starter Kit: Minimal
+# twa-ticketapp-2026
 
-```sh
-npm create astro@latest -- --template minimal
+Minimální Astro projekt. Pracujeme z Docker kontejneru — není potřeba mít Node.js nainstalovaný lokálně.
+
+*Předpoklad:* nainstalovaný Docker Desktop.
+
+---
+
+## 1) Spuštění dev serveru
+
+```bash
+docker compose up dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Co se stane:
+- Docker stáhne node:24-alpine (jen poprvé)
+- Uvnitř kontejneru se automaticky spustí npm install a npm run dev
+- Lokální soubory jsou propojené — změny v editoru se projeví okamžitě
 
-## 🚀 Project Structure
+Přístup v prohlížeči:
+- http://localhost:4322/
 
-Inside of your Astro project, you'll see the following folders and files:
+---
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+## 2) Vstup do kontejneru (pro npm příkazy)
+
+Otevři nový terminál a spusť:
+
+```bash
+docker compose exec dev sh
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Teď jsi uvnitř kontejneru. Spouštěj npm příkazy normálně:
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+```bash
+npm install <balicek>    # instalace balíčku
+npm run build            # produkční build
+npm run preview          # preview buildu
+exit                     # opuštění kontejneru
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+*Všechny npm příkazy spouštěj uvnitř kontejneru, ne na hostitelském počítači.*
 
-## 🧞 Commands
+---
 
-All commands are run from the root of the project, from a terminal:
+## 3) Zastavení
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4322`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+```bash
+docker compose down
+```
 
-## 👀 Want to learn more?
+nebo Ctrl+C v terminálu kde běží `docker compose up dev`.
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+---
+
+## Struktura projektu
+
+```
+src/
+  styles/
+    styleguide.css  # styly
+  pages/
+    index.astro     # hlavní stránka
+astro.config.mjs    # konfigurace Astro
+package.json        # závislosti
+docker-compose.yml  # Docker konfigurace (dev)
+```
