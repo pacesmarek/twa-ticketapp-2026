@@ -1,4 +1,6 @@
-# twa-ticketapp-2026
+# Cvičení 6 — twa-ticketapp-2026
+
+## Vzorová aplikace pro správu ticketů.
 
 Minimální Astro projekt. Pracujeme z Docker kontejneru — není potřeba mít Node.js nainstalovaný lokálně.
 
