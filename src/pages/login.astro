@@ -13,22 +13,64 @@ import '../styles/app.css';
     <title>Přihlášení</title>
   </head>
   <body>
-    <div class="login-screen">
+    <div
+      class="login-screen"
+      x-data="{
+        username: '',
+        password: '',
+        error: '',
+        init() {
+          // Pokud je uživatel již přihlášen, přesměruj na hlavní stránku
+          if (localStorage.getItem('auth')) {
+            window.location.href = '/';
+          }
+        },
+        login() {
+          if (this.username === 'admin' && this.password === 'admin') {
+            localStorage.setItem('auth', JSON.stringify({ user: this.username }));
+            window.location.href = '/';
+          } else {
+            this.error = 'Nesprávné přihlašovací údaje.';
+          }
+        }
+      }"
+    >
       <div class="login-box">
         <div class="card">
           <h1>Přihlášení</h1>
-          <div class="form-group">
-            <label for="email">E-mail</label>
-            <input class="input" type="email" id="email" placeholder="vas@email.cz" />
-          </div>
-          <div class="form-group">
-            <label for="password">Heslo</label>
-            <input class="input" type="password" id="password" placeholder="••••••••" />
-            <a href="#" class="forgot">Zapomněli jste heslo?</a>
-          </div>
-          <button class="btn btn-primary btn-block">Přihlásit se</button>
+
+          <!-- Chybová hláška -->
+          <p class="alert alert-error" x-show="error" x-text="error"></p>
+
+          <form @submit.prevent="login">
+            <div class="form-group">
+              <label for="username">Uživatelské jméno</label>
+              <input
+                class="input"
+                type="text"
+                id="username"
+                x-model="username"
+                placeholder="admin"
+                autocomplete="username"
+              />
+            </div>
+            <div class="form-group">
+              <label for="password">Heslo</label>
+              <input
+                class="input"
+                type="password"
+                id="password"
+                x-model="password"
+                placeholder="••••••••"
+                autocomplete="current-password"
+              />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Přihlásit se</button>
+          </form>
         </div>
       </div>
     </div>
+
+
   </body>
 </html>
