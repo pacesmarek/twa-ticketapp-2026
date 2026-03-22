@@ -66,4 +66,23 @@ src/
 astro.config.mjs    # konfigurace Astro
 package.json        # závislosti
 docker-compose.yml  # Docker konfigurace (dev)
+twa-styleguide-2026/  # Git submodul — sdílený style guide
+```
+
+---
+
+## Submodul twa-styleguide-2026
+
+Projekt používá Git submodul [twa-styleguide-2026](https://github.com/pacesmarek/twa-styleguide-2026) — sdílený style guide (CSS proměnné, komponenty, typografie).
+
+Po naklonování repozitáře je potřeba submodul inicializovat:
+
+```bash
+git submodule update --init --recursive
+```
+
+Nebo při klonování rovnou:
+
+```bash
+git clone --recurse-submodules https://github.com/pacesmarek/twa-ticketapp-2026.git
 ```
