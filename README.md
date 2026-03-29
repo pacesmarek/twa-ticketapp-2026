@@ -60,14 +60,29 @@ docker compose down
 ```
 src/
   styles/
-    styleguide.css  # styly
+    app.css         # vlastní styly aplikace
   pages/
-    index.astro     # hlavní stránka
-astro.config.mjs    # konfigurace Astro
+    index.astro     # hlavní stránka (chráněná přihlášením)
+    login.astro     # přihlašovací stránka
+astro.config.mjs    # konfigurace Astro (vč. aliasu @sg-styles)
 package.json        # závislosti
 docker-compose.yml  # Docker konfigurace (dev)
 twa-styleguide-2026/  # Git submodul — sdílený style guide
 ```
+
+---
+
+## Přihlášení
+
+Aplikace používá jednoduchou clientside autentizaci s persistencí v `localStorage`.
+
+| Uživatel | Heslo   |
+|----------|---------|
+| `admin`  | `admin` |
+
+- Po přihlášení je session uložena v `localStorage` — přežije zavření prohlížeče
+- Nepřihlášený uživatel je automaticky přesměrován na `/login`
+- Odhlášení smaže session a přesměruje zpět na `/login`
 
 ---
 
