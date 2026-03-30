@@ -59,15 +59,107 @@ docker compose down
 
 ```
 src/
-  styles/
-    app.css         # vlastní styly aplikace
+  components/
+    AuthGuard.astro       # auth guard — sdílená komponenta pro chráněné stránky
+  data/
+    tickets.json          # databáze ticketů (čtení i zápis za běhu)
+  lib/
+    tickets.ts            # datová vrstva — CRUD funkce nad tickets.json
   pages/
-    index.astro     # hlavní stránka (chráněná přihlášením)
-    login.astro     # přihlašovací stránka
-astro.config.mjs    # konfigurace Astro (vč. aliasu @sg-styles)
-package.json        # závislosti
-docker-compose.yml  # Docker konfigurace (dev)
-twa-styleguide-2026/  # Git submodul — sdílený style guide
+    index.astro           # hlavní stránka (chráněná přihlášením)
+    login.astro           # přihlašovací stránka
+    api/tickets/
+      index.ts            # GET /api/tickets, POST /api/tickets
+      [id].ts             # PUT /api/tickets/:id, DELETE /api/tickets/:id
+    tickets/
+      index.astro         # seznam ticketů
+      new.astro           # formulář pro vytvoření ticketu
+      [id]/edit.astro     # formulář pro editaci ticketu
+  styles/
+    app.css               # vlastní styly aplikace
+astro.config.mjs          # konfigurace Astro (vč. aliasu @sg-styles)
+package.json              # závislosti
+docker-compose.yml        # Docker konfigurace (dev)
+twa-styleguide-2026/      # Git submodul — sdílený style guide
+```
+
+---
+
+## Schéma aplikace
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  PROHLÍŽEČ                                                      │
+│                                                                 │
+│  localStorage: { auth: { user: "admin" } }                      │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ HTTP request
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ASTRO SERVER  (output: 'server' + @astrojs/node)               │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  STRÁNKY  src/pages/                                    │   │
+│  │                                                         │   │
+│  │  /              index.astro      ── SSR, auth guard     │   │
+│  │  /login         login.astro      ── SSR, Alpine.js form │   │
+│  │  /tickets       tickets/         ── SSR, auth guard     │   │
+│  │  /tickets/new   tickets/new      ── SSR, auth guard     │   │
+│  │  /tickets/:id/edit  [id]/edit    ── SSR, auth guard     │   │
+│  │                                                         │   │
+│  │  Auth guard: <AuthGuard />  ←  src/components/          │   │
+│  └──────────────────────┬──────────────────────────────────┘   │
+│                         │ import                                │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  API ROUTES  src/pages/api/tickets/                     │   │
+│  │                                                         │   │
+│  │  GET    /api/tickets        index.ts  → JSON seznam     │   │
+│  │  POST   /api/tickets        index.ts  → vytvoř + redirect│  │
+│  │  PUT    /api/tickets/:id    [id].ts   → uprav + redirect │  │
+│  │  DELETE /api/tickets/:id    [id].ts   → smaž, 204       │   │
+│  └──────────────────────┬──────────────────────────────────┘   │
+│                         │ import                                │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  DATOVÁ VRSTVA  src/lib/tickets.ts                      │   │
+│  │                                                         │   │
+│  │  parseTicketFormData()   getTickets()   getTicket(id)   │   │
+│  │  createTicket()          updateTicket() deleteTicket()  │   │
+│  └──────────────────────┬──────────────────────────────────┘   │
+│                         │ node:fs/promises                      │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  DATA  src/data/tickets.json                            │   │
+│  │  [ { id, title, description, status,                   │   │
+│  │      priority, assignee, createdAt }, ... ]             │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+                             │ CSS import (@sg-styles alias)
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STYLEGUIDE  twa-styleguide-2026/  (git submodul)               │
+│                                                                 │
+│  tokens.css      proměnné (barvy, spacing, ...)                 │
+│  typography.css  font Inter                                     │
+│  components.css  .card  .btn  .input  .badge  .table  ...       │
+└─────────────────────────────────────────────────────────────────┘
+
+ ──────────────────────────────────────────────────────────────────
+  TOK DAT — příklad: smazání ticketu
+ ──────────────────────────────────────────────────────────────────
+
+  [/tickets] kliknutí Smazat
+      │
+      │  Alpine.js: fetch('/api/tickets/1', { method: 'DELETE' })
+      ▼
+  DELETE /api/tickets/[id].ts
+      │  deleteTicket('1')
+      ▼
+  tickets.ts  →  readAll()  →  filter  →  writeAll()
+      │
+      ▼
+  tickets.json  (ticket odstraněn)
+      │
+      ▼  Response(null, 204)
+  fetch callback: window.location.reload()
 ```
 
 ---

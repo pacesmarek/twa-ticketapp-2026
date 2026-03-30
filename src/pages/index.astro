@@ -1,5 +1,8 @@
 ---
 import '../styles/app.css';
+import '@sg-styles/tokens.css';
+import '@sg-styles/typography.css';
+import '@sg-styles/components.css';
 ---
 
 <html lang="cs">
@@ -12,8 +15,14 @@ import '../styles/app.css';
 		<title>Ticket App</title>
 	</head>
 	<body>
-		<h1>Vítej!</h1>
-		<button id="logout">Odhlásit se</button>
+		<div class="container">
+			<h1>Vítej!</h1>
+			<br>
+			<a href="/tickets" class="btn btn-primary">Správa ticketů</a>
+			<br>
+			<br>
+			<button id="logout">Odhlásit se</button>
+		</div>
 
 		<script>
 			// Auth guard – nepřihlášený uživatel je přesměrován na /login
