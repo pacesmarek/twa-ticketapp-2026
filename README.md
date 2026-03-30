@@ -1,4 +1,4 @@
-# Cvičení 6 — twa-ticketapp-2026
+# twa-ticketapp-2026
 
 ## Vzorová aplikace pro správu ticketů.
 
