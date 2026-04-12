@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { getStore } from '@netlify/blobs';
 
+export const prerender = false;
+
 // Inicializační demo data
 const DEMO_TICKETS = [
   {

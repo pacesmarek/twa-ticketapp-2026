@@ -6,7 +6,7 @@ import path from 'path';
 const sgStylesPath = './twa-styleguide-2026/src/styles'; // Cesta ke stylům ze styleguide submodulu
 
 export default defineConfig({
-  output: 'server',
+  output: 'static',
   adapter: netlify(),
   base: '/',
   integrations: [alpine()],

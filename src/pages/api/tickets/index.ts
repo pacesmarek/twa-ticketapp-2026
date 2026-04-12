@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { getTickets, createTicket, parseTicketFormData } from '../../../lib/tickets';
 
+export const prerender = false;
+
 // GET /api/tickets
 // Vrátí všechny tickety jako JSON pole.
 // Volají ho např. klienti, kteří chtějí data bez načtení celé stránky.

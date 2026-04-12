@@ -4,9 +4,44 @@
 
 Projekt je nakonfigurován pro deployment na Netlify s těmito změnami:
 
-1. **Netlify Adapter** — `@astrojs/netlify` převádí SSR stránky a API routes na Netlify Functions
-2. **Netlify Blobs** — `@netlify/blobs` ukládá tickets do cloudového key-value storage místo lokálního `tickets.json`
-3. **Build konfigurace** — `netlify.toml` obsahuje build příkazy a nastavení
+1. **Static + Server Routes** — `output: 'static'` s jednotlivými server-rendered API routes (Astro 6)
+2. **Netlify Adapter** — `@astrojs/netlify` převádí API routes na Netlify Functions
+3. **Client-side data loading** — Stránky načítají data pomocí Alpine.js a `fetch()` z API
+4. **Netlify Blobs** — `@netlify/blobs` ukládá tickets do cloudového key-value storage místo lokálního `tickets.json`
+5. **Build konfigurace** — `netlify.toml` obsahuje build příkazy a nastavení
+
+## Výhody tohoto přístupu
+
+- ✅ Stránky jsou statické HTML soubory (rychlé načtení)
+- ✅ Netlify Functions se volají jen pro API operace (CRUD)
+- ✅ Nižší spotřeba Function calls = levnější provoz
+- ✅ Data vždy aktuální (načítají se z API, ne z build času)
+
+## Server vs Static režim
+
+### S `output: 'server'` (SSR):
+
+Každý request na `/tickets`:
+1. Netlify Function spustí celou stránku (SSR)
+2. Server zavolá `const tickets = await getTickets()`
+3. Vygeneruje HTML s daty natvrdo embedovanými v HTML
+4. Odešle kompletní HTML → uživatel
+5. **= 1 Function call na každé načtení stránky**
+
+### S `output: 'static'` (JAMstack):
+
+**Při buildu:**
+- Vygeneruje se `/tickets/index.html` (prázdná šablona bez dat)
+
+**Každý request na `/tickets`:**
+1. Netlify servíruje statický HTML z CDN (**0 Function calls**)
+2. Alpine.js v prohlížeči: `fetch('/api/tickets')` (**1 Function call jen pro data**)
+3. Data se zobrazí v tabulce dynamicky
+
+**Výsledek:**
+- Server: **1 Function call = celá stránka**
+- Static: **0 Function pro stránku + 1 Function jen pro data**
+- → Rychlejší, levnější, lépe škáluje
 
 ## Lokální vývoj
 
