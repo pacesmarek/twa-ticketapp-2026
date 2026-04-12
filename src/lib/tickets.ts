@@ -1,9 +1,8 @@
-import fs from 'node:fs/promises'; // Node.js modul pro práci se soubory (čtení, zápis)
-import path from 'node:path';      // Node.js modul pro sestavování cest k souborům
+import { getStore } from '@netlify/blobs'; // Netlify Blobs pro cloudové úložiště
 
-// Absolutní cesta k datovému souboru.
-// process.cwd() vrátí kořenový adresář projektu (tam kde běží Node.js).
-const DB_PATH = path.join(process.cwd(), 'src/data/tickets.json');
+// Netlify Blobs store instance pro tickets
+// V produkci běží na Netlify infrastruktuře, lokálně v dev režimu
+const getTicketsStore = () => getStore('tickets');
 
 // --- Typy ---
 
@@ -24,16 +23,19 @@ export interface Ticket {
 
 // --- Interní pomocné funkce (neexportujeme — používají je jen funkce níže) ---
 
-// Přečte soubor, převede JSON text na pole objektů a vrátí ho.
+// Přečte data z Netlify Blobs a vrátí je jako pole objektů.
+// Pokud data neexistují, vrátí prázdné pole.
 async function readAll(): Promise<Ticket[]> {
-  const raw = await fs.readFile(DB_PATH, 'utf-8'); // přečte soubor jako text
-  return JSON.parse(raw);                           // převede JSON string → JS pole
+  const store = getTicketsStore();
+  const raw = await store.get('all', { type: 'text' }); // přečte data jako text
+  if (!raw) return []; // pokud store je prázdný, vrátí prázdné pole
+  return JSON.parse(raw); // převede JSON string → JS pole
 }
 
-// Převede pole objektů na JSON text a zapíše ho do souboru.
+// Převede pole objektů na JSON text a zapíše ho do Netlify Blobs.
 async function writeAll(tickets: Ticket[]): Promise<void> {
-  // JSON.stringify(data, null, 2) — třetí argument "2" znamená odsadit 2 mezerami
-  await fs.writeFile(DB_PATH, JSON.stringify(tickets, null, 2));
+  const store = getTicketsStore();
+  await store.set('all', JSON.stringify(tickets, null, 2)); // JSON.stringify s odsazením
 }
 
 // --- Pomocná funkce pro API routes ---
