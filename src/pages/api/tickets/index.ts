@@ -8,7 +8,9 @@ export const prerender = false;
 // Volají ho např. klienti, kteří chtějí data bez načtení celé stránky.
 export const GET: APIRoute = async () => {
   const tickets = await getTickets();
-  return Response.json(tickets); // Response.json() nastaví Content-Type: application/json
+  return Response.json(tickets, {
+    headers: { 'Cache-Control': 'no-store' },
+  }); // Response.json() nastaví Content-Type: application/json
 };
 
 // POST /api/tickets

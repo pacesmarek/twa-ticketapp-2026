@@ -91,7 +91,7 @@ import '@sg-styles/components.css';
             try {
               this.loading = true;
               this.error = null;
-              const response = await fetch('/api/tickets');
+              const response = await fetch('/api/tickets', { cache: 'no-store' });
               
               if (!response.ok) {
                 throw new Error('Nepodařilo se načíst tickety');
