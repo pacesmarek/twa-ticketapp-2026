@@ -35,7 +35,12 @@ async function readAll(): Promise<Ticket[]> {
 // Převede pole objektů na JSON text a zapíše ho do Netlify Blobs.
 async function writeAll(tickets: Ticket[]): Promise<void> {
   const store = getTicketsStore();
-  await store.set('all', JSON.stringify(tickets, null, 2)); // JSON.stringify s odsazením
+  await store.set('all', JSON.stringify(tickets, null, 2), {
+    metadata: { 
+      updated: new Date().toISOString(),
+      count: tickets.length.toString()
+    }
+  });
 }
 
 // --- Pomocná funkce pro API routes ---

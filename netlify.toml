@@ -15,6 +15,14 @@
   targetPort = 4322
   autoLaunch = false
 
+# Vypnout cache pro API endpointy
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, max-age=0"
+    Pragma = "no-cache"
+    Expires = "0"
+
 # Redirect config (pokud by bylo potřeba SPA routing)
 # [[redirects]]
 #   from = "/*"

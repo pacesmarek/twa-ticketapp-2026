@@ -21,7 +21,7 @@ import '@sg-styles/components.css';
         <a href="/tickets/new" class="btn btn-primary">+ Nový ticket</a>
       </div>
 
-      <div class="card" x-data="ticketList()" x-init="loadTickets()">
+      <div class="card" x-data="ticketList()" x-init="init()">
         <!-- Loading state -->
         <div x-show="loading" style="padding: 2.4rem; text-align: center; color: #9ca3af;">
           Načítání ticketů...
@@ -87,12 +87,41 @@ import '@sg-styles/components.css';
           loading: true,
           error: null,
 
+          init() {
+            // Načti tickety při prvním zobrazení
+            this.loadTickets();
+            
+            // Refresh dat když se uživatel vrátí na stránku (např. z editace)
+            window.addEventListener('pageshow', (event) => {
+              // Pokud stránka přichází z cache (back/forward button), refresh
+              if (event.persisted) {
+                this.loadTickets();
+              }
+            });
+            
+            // Refresh dat když získá stránka focus
+            window.addEventListener('focus', () => {
+              this.loadTickets();
+            });
+            
+            // Refresh dat když se stránka stane viditelná (např. po přepnutí tabu)
+            document.addEventListener('visibilitychange', () => {
+              if (!document.hidden) {
+                this.loadTickets();
+              }
+            });
+          },
+
           async loadTickets() {
             try {
               this.loading = true;
               this.error = null;
               const response = await fetch('/api/tickets?_=' + Date.now(), { 
-                cache: 'no-store' 
+                cache: 'no-store',
+                headers: {
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  'Pragma': 'no-cache'
+                }
               });
               
               if (!response.ok) {
