@@ -87,11 +87,12 @@ import '@sg-styles/components.css';
           loading: true,
           error: null,
 
-          async loadTickets() {
+          async loadTickets(delay = 0) {
             try {
               this.loading = true;
               this.error = null;
-              const response = await fetch('/api/tickets', { cache: 'no-store' });
+              if (delay) await new Promise(r => setTimeout(r, delay));
+              const response = await fetch('/api/tickets?_=' + Date.now(), { cache: 'no-store' });
               
               if (!response.ok) {
                 throw new Error('Nepodařilo se načíst tickety');
@@ -105,6 +106,14 @@ import '@sg-styles/components.css';
             }
           },
 
+          init() {
+            const fresh = new URLSearchParams(window.location.search).has('created');
+            if (fresh) {
+              history.replaceState(null, '', '/tickets');
+            }
+            this.loadTickets(fresh ? 800 : 0);
+          },
+
           async deleteTicket(id) {
             if (!confirm('Opravdu smazat tento ticket?')) {
               return;
@@ -116,8 +125,7 @@ import '@sg-styles/components.css';
               });
 
               if (response.ok) {
-                // Reload data po smazání
-                await this.loadTickets();
+                await this.loadTickets(800);
               } else {
                 alert('Nepodařilo se smazat ticket');
               }
