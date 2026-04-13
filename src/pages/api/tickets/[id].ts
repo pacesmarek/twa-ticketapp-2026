@@ -1,10 +1,26 @@
 import type { APIRoute } from 'astro';
-import { updateTicket, deleteTicket, parseTicketFormData } from '../../../lib/tickets';
+import { getTicket, updateTicket, deleteTicket, parseTicketFormData } from '../../../lib/tickets';
+
+export const prerender = false;
+
+// GET /api/tickets/:id
+// Vrátí jeden ticket podle ID jako JSON.
+export const GET: APIRoute = async ({ params }) => {
+  const ticket = await getTicket(params.id!);
+
+  if (!ticket) {
+    return new Response('Ticket nenalezen', { status: 404 });
+  }
+
+  return Response.json(ticket, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
+};
 
 // PUT /api/tickets/:id
-// Přijme data z formuláře, aktualizuje ticket a přesměruje na seznam.
+// Přijme data z formuláře, aktualizuje ticket a vrátí ho jako JSON.
 // Volán přes fetch() z editačního formuláře — HTML formuláře PUT nepodporují.
-export const PUT: APIRoute = async ({ params, request, redirect }) => {
+export const PUT: APIRoute = async ({ params, request }) => {
   const form = await request.formData();
   const updated = await updateTicket(params.id!, parseTicketFormData(form));
 
@@ -13,7 +29,9 @@ export const PUT: APIRoute = async ({ params, request, redirect }) => {
     return new Response('Ticket nenalezen', { status: 404 });
   }
 
-  return redirect('/tickets', 302);
+  return Response.json(updated, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
 };
 
 // DELETE /api/tickets/:id
@@ -27,5 +45,8 @@ export const DELETE: APIRoute = async ({ params }) => {
   }
 
   // 204 = úspěch bez těla odpovědi (není co vracet po smazání)
-  return new Response(null, { status: 204 });
+  return new Response(null, { 
+    status: 204,
+    headers: { 'Cache-Control': 'no-store' },
+  });
 };

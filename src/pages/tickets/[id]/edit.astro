@@ -1,5 +1,6 @@
 ---
-import { getTicket } from '../../../lib/tickets';
+export const prerender = false;
+
 import AuthGuard from '../../../components/AuthGuard.astro';
 import '../../../styles/app.css';
 import '@sg-styles/tokens.css';
@@ -7,11 +8,6 @@ import '@sg-styles/typography.css';
 import '@sg-styles/components.css';
 
 const { id } = Astro.params;
-const ticket = await getTicket(id!);
-
-if (!ticket) {
-  return Astro.redirect('/tickets');
-}
 ---
 
 <html lang="cs">
@@ -26,55 +22,122 @@ if (!ticket) {
     <div class="container" style="padding-top: 4rem; padding-bottom: 4rem; max-width: 64rem;">
       <h1 style="font-size: 2.4rem; margin-bottom: 2.4rem;">Upravit ticket</h1>
 
-      <div class="card">
+      <div class="card" x-data="ticketEdit()" x-init={`loadTicket('${id}')`}>
+        <!-- Loading state -->
+        <div x-show="loading" style="padding: 2.4rem; text-align: center; color: #9ca3af;">
+          Načítání ticketu...
+        </div>
+
+        <!-- Error state -->
+        <div x-show="error" style="padding: 2.4rem; text-align: center; color: #b91c1c;">
+          <p x-text="error"></p>
+          <a href="/tickets" style="margin-top: 1.2rem; display: inline-block;">← Zpět na seznam</a>
+        </div>
+
+        <!-- Edit form -->
         <form
-          x-data
-          @submit.prevent={`
-            fetch('/api/tickets/${ticket.id}', {
-              method: 'PUT',
-              body: new FormData($el)
-            }).then(() => window.location.href = '/tickets')
-          `}
+          x-show="!loading && !error && ticket"
+          @submit.prevent="saveTicket"
         >
           <div class="form-group">
             <label for="title">Název</label>
-            <input class="input" type="text" id="title" name="title" value={ticket.title} required />
+            <input class="input" type="text" id="title" name="title" x-model="ticket.title" required />
           </div>
 
           <div class="form-group">
             <label for="description">Popis</label>
-            <textarea class="input" id="description" name="description" rows="4" style="resize: vertical;">{ticket.description}</textarea>
+            <textarea class="input" id="description" name="description" rows="4" style="resize: vertical;" x-model="ticket.description"></textarea>
           </div>
 
           <div class="form-group">
             <label for="status">Status</label>
-            <select class="input" id="status" name="status">
-              <option value="open"        selected={ticket.status === 'open'}>open</option>
-              <option value="in-progress" selected={ticket.status === 'in-progress'}>in-progress</option>
-              <option value="closed"      selected={ticket.status === 'closed'}>closed</option>
+            <select class="input" id="status" name="status" x-model="ticket.status">
+              <option value="open">open</option>
+              <option value="in-progress">in-progress</option>
+              <option value="closed">closed</option>
             </select>
           </div>
 
           <div class="form-group">
             <label for="priority">Priorita</label>
-            <select class="input" id="priority" name="priority">
-              <option value="low"    selected={ticket.priority === 'low'}>low</option>
-              <option value="medium" selected={ticket.priority === 'medium'}>medium</option>
-              <option value="high"   selected={ticket.priority === 'high'}>high</option>
+            <select class="input" id="priority" name="priority" x-model="ticket.priority">
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
             </select>
           </div>
 
           <div class="form-group">
             <label for="assignee">Přiřazeno</label>
-            <input class="input" type="text" id="assignee" name="assignee" value={ticket.assignee} />
+            <input class="input" type="text" id="assignee" name="assignee" x-model="ticket.assignee" />
           </div>
 
           <div style="display: flex; gap: 1.2rem; margin-top: 2.4rem;">
-            <button type="submit" class="btn btn-primary">Uložit</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving">
+              <span x-show="!saving">Uložit</span>
+              <span x-show="saving">Ukládání...</span>
+            </button>
             <a href="/tickets" class="btn" style="background: #e5e7eb; color: #374151;">Zrušit</a>
           </div>
         </form>
       </div>
     </div>
+
+    <script is:inline define:vars={{ ticketId: id }}>
+      window.ticketEdit = function() {
+        return {
+          ticket: null,
+          loading: true,
+          saving: false,
+          error: null,
+
+          async loadTicket(id) {
+            try {
+              this.loading = true;
+              this.error = null;
+              const response = await fetch(`/api/tickets/${id}`);
+              
+              if (!response.ok) {
+                if (response.status === 404) {
+                  throw new Error('Ticket nenalezen');
+                }
+                throw new Error('Nepodařilo se načíst ticket');
+              }
+              
+              this.ticket = await response.json();
+            } catch (err) {
+              this.error = err.message;
+            } finally {
+              this.loading = false;
+            }
+          },
+
+          async saveTicket(event) {
+            if (this.saving) return;
+
+            try {
+              this.saving = true;
+              const formData = new FormData(event.target);
+              
+              const response = await fetch(`/api/tickets/${ticketId}`, {
+                method: 'PUT',
+                body: formData
+              });
+
+              if (!response.ok) {
+                throw new Error('Nepodařilo se uložit ticket');
+              }
+
+              await response.json(); // parsuj odpověď
+              window.location.href = '/tickets';
+            } catch (err) {
+              alert('Chyba při ukládání: ' + err.message);
+            } finally {
+              this.saving = false;
+            }
+          }
+        };
+      };
+    </script>
   </body>
 </html>

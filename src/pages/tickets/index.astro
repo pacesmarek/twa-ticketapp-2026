@@ -1,12 +1,9 @@
 ---
-import { getTickets } from '../../lib/tickets';
 import AuthGuard from '../../components/AuthGuard.astro';
 import '../../styles/app.css';
 import '@sg-styles/tokens.css';
 import '@sg-styles/typography.css';
 import '@sg-styles/components.css';
-
-const tickets = await getTickets();
 ---
 
 <html lang="cs">
@@ -24,8 +21,19 @@ const tickets = await getTickets();
         <a href="/tickets/new" class="btn btn-primary">+ Nový ticket</a>
       </div>
 
-      <div class="card">
-        <table class="table">
+      <div class="card" x-data="ticketList()" x-init="init()">
+        <!-- Loading state -->
+        <div x-show="loading" style="padding: 2.4rem; text-align: center; color: #9ca3af;">
+          Načítání ticketů...
+        </div>
+
+        <!-- Error state -->
+        <div x-show="error" style="padding: 2.4rem; text-align: center; color: #b91c1c;">
+          <p x-text="error"></p>
+        </div>
+
+        <!-- Tickets table -->
+        <table class="table" x-show="!loading && !error">
           <thead>
             <tr>
               <th>#</th>
@@ -37,31 +45,118 @@ const tickets = await getTickets();
             </tr>
           </thead>
           <tbody>
-            {tickets.map(ticket => (
+            <template x-for="ticket in tickets" :key="ticket.id">
               <tr>
-                <td style="color: #9ca3af;">{ticket.id}</td>
-                <td>{ticket.title}</td>
-                <td><span class={`badge badge-${ticket.status}`}>{ticket.status}</span></td>
-                <td><span class={`badge badge-${ticket.priority}`}>{ticket.priority}</span></td>
-                <td>{ticket.assignee}</td>
+                <td style="color: #9ca3af;" x-text="ticket.id"></td>
+                <td x-text="ticket.title"></td>
+                <td>
+                  <span :class="`badge badge-${ticket.status}`" x-text="ticket.status"></span>
+                </td>
+                <td>
+                  <span :class="`badge badge-${ticket.priority}`" x-text="ticket.priority"></span>
+                </td>
+                <td x-text="ticket.assignee"></td>
                 <td style="white-space: nowrap;">
-                  <a href={`/tickets/${ticket.id}/edit`} style="margin-right: 1.2rem;">Upravit</a>
+                  <a :href="`/tickets/${ticket.id}/edit`" style="margin-right: 1.2rem;">Upravit</a>
                   <button
                     class="btn"
                     style="background: #fee2e2; color: #b91c1c; padding: 0.4rem 1rem; font-size: 1.3rem;"
-                    x-data
-                    @click={`fetch('/api/tickets/${ticket.id}', { method: 'DELETE' }).then(() => window.location.reload())`}
+                    @click="deleteTicket(ticket.id)"
                   >
                     Smazat
                   </button>
                 </td>
               </tr>
-            ))}
+            </template>
           </tbody>
         </table>
+
+        <!-- Empty state -->
+        <div x-show="!loading && !error && tickets.length === 0" style="padding: 2.4rem; text-align: center; color: #9ca3af;">
+          Žádné tickety. <a href="/tickets/new">Vytvořte první ticket</a>.
+        </div>
       </div>
 
       <p style="margin-top: 2rem;"><a href="/">← Zpět</a></p>
     </div>
+
+    <script is:inline>
+      window.ticketList = function() {
+        return {
+          tickets: [],
+          loading: true,
+          error: null,
+
+          init() {
+            // Načti tickety při prvním zobrazení
+            this.loadTickets();
+            
+            // Refresh dat když se uživatel vrátí na stránku (např. z editace)
+            window.addEventListener('pageshow', (event) => {
+              // Pokud stránka přichází z cache (back/forward button), refresh
+              if (event.persisted) {
+                this.loadTickets();
+              }
+            });
+            
+            // Refresh dat když získá stránka focus
+            window.addEventListener('focus', () => {
+              this.loadTickets();
+            });
+            
+            // Refresh dat když se stránka stane viditelná (např. po přepnutí tabu)
+            document.addEventListener('visibilitychange', () => {
+              if (!document.hidden) {
+                this.loadTickets();
+              }
+            });
+          },
+
+          async loadTickets() {
+            try {
+              this.loading = true;
+              this.error = null;
+              const response = await fetch('/api/tickets?_=' + Date.now(), { 
+                cache: 'no-store',
+                headers: {
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  'Pragma': 'no-cache'
+                }
+              });
+              
+              if (!response.ok) {
+                throw new Error('Nepodařilo se načíst tickety');
+              }
+              
+              this.tickets = await response.json();
+            } catch (err) {
+              this.error = err.message;
+            } finally {
+              this.loading = false;
+            }
+          },
+
+          async deleteTicket(id) {
+            if (!confirm('Opravdu smazat tento ticket?')) {
+              return;
+            }
+
+            try {
+              const response = await fetch(`/api/tickets/${id}`, {
+                method: 'DELETE'
+              });
+
+              if (!response.ok) {
+                throw new Error('Nepodařilo se smazat ticket');
+              }
+
+              await this.loadTickets();
+            } catch (err) {
+              alert('Chyba při mazání: ' + err.message);
+            }
+          }
+        };
+      };
+    </script>
   </body>
 </html>
