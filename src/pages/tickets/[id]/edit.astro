@@ -124,11 +124,12 @@ const { id } = Astro.params;
                 body: formData
               });
 
-              if (response.ok) {
-                window.location.href = '/tickets';
-              } else {
-                alert('Nepodařilo se uložit ticket');
+              if (!response.ok) {
+                throw new Error('Nepodařilo se uložit ticket');
               }
+
+              await response.json(); // parsuj odpověď
+              window.location.href = '/tickets';
             } catch (err) {
               alert('Chyba při ukládání: ' + err.message);
             } finally {
