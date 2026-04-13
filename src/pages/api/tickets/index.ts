@@ -14,9 +14,12 @@ export const GET: APIRoute = async () => {
 };
 
 // POST /api/tickets
-// Přijme data z HTML formuláře, vytvoří nový ticket a přesměruje uživatele na seznam.
-export const POST: APIRoute = async ({ request, redirect }) => {
+// Přijme data z HTML formuláře, vytvoří nový ticket a vrátí ho jako JSON.
+export const POST: APIRoute = async ({ request }) => {
   const form = await request.formData(); // přečte tělo requestu jako FormData
-  await createTicket(parseTicketFormData(form));
-  return redirect('/tickets?created=1', 302); // 302 = dočasné přesměrování
+  const ticket = await createTicket(parseTicketFormData(form));
+  return Response.json(ticket, {
+    status: 201,
+    headers: { 'Cache-Control': 'no-store' },
+  });
 };
