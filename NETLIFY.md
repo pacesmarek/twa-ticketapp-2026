@@ -7,15 +7,19 @@ Projekt je nakonfigurován pro deployment na Netlify s těmito změnami:
 1. **Static + Server Routes** — `output: 'static'` s jednotlivými server-rendered API routes (Astro 6)
 2. **Netlify Adapter** — `@astrojs/netlify` převádí API routes na Netlify Functions
 3. **Client-side data loading** — Stránky načítají data pomocí Alpine.js a `fetch()` z API
-4. **Netlify Blobs** — `@netlify/blobs` ukládá tickets do cloudového key-value storage místo lokálního `tickets.json`
-5. **Build konfigurace** — `netlify.toml` obsahuje build příkazy a nastavení
+4. **Netlify Blobs** — `@netlify/blobs` ukládá tickets do cloudového key-value storage
+5. **JSON API** — Všechny API endpointy vrací JSON (žádné redirecty)
+6. **Cache busting** — `netlify.toml` obsahuje no-cache headers pro API, `fetch()` používá timestamp querystring
+7. **Auto-reload** — Stránky se automaticky obnoví při focus/pageshow events
 
 ## Výhody tohoto přístupu
 
-- ✅ Stránky jsou statické HTML soubory (rychlé načtení)
+- ✅ Stránky jsou statické HTML soubory (rychlé načtení z CDN)
 - ✅ Netlify Functions se volají jen pro API operace (CRUD)
 - ✅ Nižší spotřeba Function calls = levnější provoz
 - ✅ Data vždy aktuální (načítají se z API, ne z build času)
+- ✅ Žádné manuální refreshe — auto-reload při focus/visibility change
+- ✅ JSON API — kompatibilní s fetch(), čisté error handling
 
 ## Server vs Static režim
 
@@ -42,6 +46,103 @@ Každý request na `/tickets`:
 - Server: **1 Function call = celá stránka**
 - Static: **0 Function pro stránku + 1 Function jen pro data**
 - → Rychlejší, levnější, lépe škáluje
+
+## API Endpointy
+
+Všechny API routes vrací **JSON** místo HTML redirectů:
+
+### GET /api/tickets
+```json
+[
+  { "id": "1", "title": "...", "status": "open", ... },
+  ...
+]
+```
+**Headers:** `Cache-Control: no-store`
+
+### POST /api/tickets
+**Request:** FormData z HTML formuláře  
+**Response:** Nově vytvořený ticket (status 201)
+```json
+{ "id": "4", "title": "...", "createdAt": "...", ... }
+```
+
+### GET /api/tickets/:id
+**Response:** Jeden ticket
+```json
+{ "id": "1", "title": "...", ... }
+```
+
+### PUT /api/tickets/:id
+**Request:** FormData z HTML formuláře  
+**Response:** Aktualizovaný ticket
+```json
+{ "id": "1", "title": "Nový název", ... }
+```
+
+### DELETE /api/tickets/:id
+**Response:** 204 No Content (bez těla)
+
+## Cache Strategy
+
+### Server-side (netlify.toml)
+```toml
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, max-age=0"
+    Pragma = "no-cache"
+    Expires = "0"
+```
+
+### Client-side (fetch)
+```js
+fetch('/api/tickets?_=' + Date.now(), { 
+  cache: 'no-store',
+  headers: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache'
+  }
+})
+```
+
+### Auto-reload mechanismus
+Stránka `/tickets` se automaticky reloaduje při:
+- **focus** — návrat na stránku z jiné záložky/okna
+- **pageshow** — pokud stránka přichází z bfcache (back button)
+- **visibilitychange** — when stránka se stane viditelnou
+
+```js
+window.addEventListener('focus', () => this.loadTickets());
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) this.loadTickets();
+});
+```
+
+**Výsledek:** Data jsou vždy aktuální bez manuálního F5.
+
+## Netlify Blobs Storage
+
+Data jsou uložena v Netlify Blobs store pod názvem `tickets`.
+
+### Metadata tracking
+Každý zápis obsahuje metadata pro lepší debugging:
+```js
+await store.set('all', JSON.stringify(tickets), {
+  metadata: { 
+    updated: new Date().toISOString(),
+    count: tickets.length.toString()
+  }
+});
+```
+
+**Free tier limity:**
+- 1 GB storage
+- 1 GB bandwidth/měsíc
+
+**Initial data:** První přístup vrátí prázdné pole. Pro nahrání dat:
+- Vytvořit tickets ručně přes UI
+- Zavolat `/api/init-data` (viz src/pages/api/init-data.ts)
 
 ## Lokální vývoj
 
@@ -81,36 +182,15 @@ netlify init
 netlify deploy --prod
 ```
 
-## Netlify Blobs Storage
-
-Data jsou uložena v Netlify Blobs store pod názvem `tickets`. 
-
-**Free tier limity:**
-- 1 GB storage
-- 1 GB bandwidth/měsíc
-
-**Initial data:** První přístup vrátí prázdné pole, protože Blobs store je prázdný. Pro nahrání počátečních dat můžete:
-- Vytvořit tickets ručně přes UI po deployi
-- Vytvořit migration script (viz níže)
-
-### Migration script (volitelné)
-
-Pokud chcete nahrát existující data ze `src/data/tickets.json`:
-
-```bash
-# Vytvořit API route pro inicializaci
-# src/pages/api/init-data.ts
-```
-
 ## Kontrola funkčnosti
 
 Po deployi otestujte:
 - ✅ Načtení stránky
 - ✅ Přihlášení (admin/admin)
 - ✅ Vytvoření nového ticketu
-- ✅ Editace ticketu
-- ✅ Smazání ticketu
-- ✅ Refresh stránky — data se zachovají
+- ✅ Editace ticketu — změny se projeví okamžitě bez F5
+- ✅ Smazání ticketu — zmizí okamžitě
+- ✅ Návrat na stránku z jiné záložky — data se automaticky obnoví
 
 ## Submodule
 
