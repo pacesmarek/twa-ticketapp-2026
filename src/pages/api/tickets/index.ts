@@ -18,5 +18,5 @@ export const GET: APIRoute = async () => {
 export const POST: APIRoute = async ({ request, redirect }) => {
   const form = await request.formData(); // přečte tělo requestu jako FormData
   await createTicket(parseTicketFormData(form));
-  return redirect('/tickets', 302); // 302 = dočasné přesměrování
+  return redirect('/tickets?created=1', 302); // 302 = dočasné přesměrování
 };
